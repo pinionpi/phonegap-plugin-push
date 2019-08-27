@@ -82,7 +82,19 @@
     <source-file src="src/ios/PushPlugin.m"/>
     <header-file src="src/ios/AppDelegate+notification.h"/>
     <header-file src="src/ios/PushPlugin.h"/>
+    <podspec>
+        <config>
+            <source url="https://github.com/CocoaPods/Specs.git"/>
+        </config>
+        <pods use-frameworks="true" inhibit-all-warnings="true">
+            <pod name="FirebaseMessaging" spec="~> 2.0.0" />
+            <pod name="AesGcm" spec="~> 1.2.2" />
+        </pods>
+    </podspec>
+    <!--
     <framework src="FirebaseMessaging" type="podspec" spec="~> 2.0.0"/>
+    <framework src="AesGcm" type="podspec" spec="~> 1.2.2" />
+    -->
     <framework src="PushKit.framework"/>
   </platform>
   <platform name="windows">
