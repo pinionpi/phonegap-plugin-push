@@ -494,6 +494,23 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
     SharedPreferences.Editor editor = context.getSharedPreferences(BADGE, Context.MODE_PRIVATE).edit();
     editor.putInt(BADGE, Math.max(badgeCount, 0));
     editor.apply();
+
+    // 2022-07-22 Huawei badge number
+    // Ref: https://developer.huawei.com/consumer/en/doc/development/Corner-Guides/308011?ha_source=hms1
+    String manufacturer = android.os.Build.MANUFACTURER;
+    if (!"HUAWEI".equals(manufacturer)) {
+      return;
+    }
+    try {
+      Bundle bundle = new Bundle();
+      bundle.putString("package", "com.eunite.atwork"); // com.test.badge is your package name
+      bundle.putString("class", "com.eunite.atwork.MainActivity"); // com.test.badge.MainActivity is your apk main activity
+      bundle.putInt("badgenumber", badgeCount);
+      context.getContentResolver().call(Uri.parse("content://com.huawei.android.launcher.settings/badge/"), "change_badge", null, bundle);
+    } catch (Exception ex) {
+      Log.w(LOG_TAG, "huawei setBadgeNumber fail", ex);
+    }
+
   }
 
   @Override
