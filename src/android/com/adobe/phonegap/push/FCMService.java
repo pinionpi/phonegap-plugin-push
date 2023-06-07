@@ -61,9 +61,9 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
   private static final String LOG_TAG = "Push_FCMService";
   private static HashMap<Integer, ArrayList<String>> messageMap = new HashMap<Integer, ArrayList<String>>();
 
-  // 2020-07-15 Try WakeLock for voice call (See GcmService.onMessageReceived)
-  // 2021-09-08 keyguardLock disableKeyguard/reenableKeyguard => not work
-  // 2021-09-08 Android moveToBackground (also clearScreenAndKeyguardFlags) / See BackgroundModeExt.java
+  // 2020-07-15 ATIP Try WakeLock for voice call (See GcmService.onMessageReceived)
+  // 2021-09-08 ATIP keyguardLock disableKeyguard/reenableKeyguard => not work
+  // 2021-09-08 ATIP Android moveToBackground (also clearScreenAndKeyguardFlags) / See BackgroundModeExt.java
   private static PowerManager.WakeLock wakeLock;
   private static KeyguardManager.KeyguardLock keyguardLock; // See also FLAG_DISMISS_KEYGUARD
 
@@ -103,7 +103,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
     if (extras != null && isAvailableSender(from)) {
       Context applicationContext = getApplicationContext();
 
-      // 2020-07-15 WakeLock for call
+      // 2020-07-15 ATIP WakeLock for call
       final String rawOp = extras.getString("rawOp");
       if ("call".equals(rawOp)) {
         try {
@@ -116,7 +116,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
           //wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "eunite:wakelocktag");
           //wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "eunite:wakelocktag");
 
-          // 2021-09-08 acquire wakeLock with timeout 2s
+          // 2021-09-08 ATIP acquire wakeLock with timeout 2s
           wakeLock.acquire(2*1000L);
           Log.w(LOG_TAG, "acquire wakeLock=" + wakeLock + ", isHeld=" + wakeLock.isHeld());
         } catch (Exception ex) {
@@ -196,7 +196,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         showNotificationIfPossible(applicationContext, extras);
       }
 
-      /* 2021-09-08 Comment release wakeLock
+      /* 2021-09-08 ATIP Comment release wakeLock
       if (wakeLock != null && wakeLock.isHeld()) {
         try {
           wakeLock.release();
@@ -481,7 +481,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
     // The name of the sound file to be played upon receipt of the notification in this channel.
     // Cannot be changed after channel is created.
 
-    // 2019-10-07 TODO Use sound from channel
+    // 2019-10-07 ATIP TODO Use sound from channel
     //android.resource://com.eunite.atwork/raw/noti
     //String soundname = "noti";
     //Uri sound = Uri.parse(ContentResolver.SCHEME_ANDROID_RESOURCE + "://" + context.getPackageName() + "/raw/" + soundname);
@@ -529,7 +529,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
     Log.d(LOG_TAG, "stored sound=" + soundOption);
     Log.d(LOG_TAG, "stored vibrate=" + vibrateOption);
 
-    // 2018-07-18 Fix Notification Icon for Android N (color, vector icon)
+    // 2018-07-18 ATIP Fix Notification Icon for Android N (color, vector icon)
     // <preference name="StatusBarBackgroundColor" value="#0D47A1" />
     // Fix icon color (Android Lollipop+)
     // https://stackoverflow.com/questions/30795431/android-push-notifications-icon-not-displaying-in-notification-white-square-sh
@@ -807,18 +807,18 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
 
   /**
    * Change History for FCMService setNotificationMessage:
-   * 2019-08-30 Repeat split setNotificationMessage/displayNotificationMessage from GCMIntentService to FCMService
-   * 2022-10-19 grouping keys: offline
+   * 2019-08-30 ATIP Repeat split setNotificationMessage/displayNotificationMessage from GCMIntentService to FCMService
+   * 2022-10-19 ATIP grouping keys: offline
    *
    * Change History for GCMIntentService setNotificationMessage:
-   * 2018-05-17 POC Edit notification message => OK
-   * 2018-05-17 POC Read Key File => OK
-   * 2018-05-30 Integrate Decrypt Push in Android AtWork2018
-   * 2018-05-30 Determine which keyFile from push payload rawMesg.lock => OK
+   * 2018-05-17 ATIP POC Edit notification message => OK
+   * 2018-05-17 ATIP POC Read Key File => OK
+   * 2018-05-30 ATIP Integrate Decrypt Push in Android AtWork2018
+   * 2018-05-30 ATIP Determine which keyFile from push payload rawMesg.lock => OK
    * 2018-06-06 Teerawat In case not text message use message from server
-   * 2018-07-18 show sender udenName for roomType group
-   * 2018-10-24 Support pushChatMI
-   * 2018-11-28 Offline EncProfile complete cases: room type x message type x lock text x EncProfile
+   * 2018-07-18 ATIP show sender udenName for roomType group
+   * 2018-10-24 ATIP Support pushChatMI
+   * 2018-11-28 ATIP Offline EncProfile complete cases: room type x message type x lock text x EncProfile
    *      room type (friend,group)
    *      message type (file,contact,location,secret,link,notification,text)
    *      lock text (nolock,unlock,unlockfail)
@@ -853,7 +853,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
 
       final String roomType = extras.getString("roomType");
 
-      // 2018-11-26 EncProfile not send senderName, udenName
+      // 2018-11-26 ATIP EncProfile not send senderName, udenName
       final String chatroom = extras.getString("chatroom");
       final String senderCode = extras.getString("senderCode");
       String senderName = extras.getString("senderName");
@@ -1008,7 +1008,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         Log.i(LOG_TAG, "[pushChatMI] Solve title: " + title);
 
         // Solve lock text
-        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type))) {
+        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type) || "file".equals(type) || "survey".equals(type))) {
           final String[] lockSplit = lock.split("[:]");
           final String encrypted = text.trim();
           Log.d(LOG_TAG, "[payload] decrypt pushChatMI text which is locked: encrypted=" + encrypted);
@@ -1058,7 +1058,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
 
           // decrypt with key available
           if (keyText != null && !keyText.isEmpty()) {
-            // 2018-05-30 Integrate Decrypt Push in Android AtWork2018
+            // 2018-05-30 ATIP Integrate Decrypt Push in Android AtWork2018
             String decrypted = EncryptUtils.aesgcmDecryptText(keyText, encrypted);
             Log.d(LOG_TAG, "encrypted=" + encrypted + ", decrypted=" + decrypted);
             String decoded = decrypted;
@@ -1171,6 +1171,11 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
           }
         }
 
+        boolean isYouHaveAnnounceText = "You have a new announcement.".equals(message);
+        boolean hasText = message != null && message.length() > 0 && !isYouHaveAnnounceText;
+        boolean isFileWithText = "file".equals(type) && hasText;
+        boolean isSurveyWithText = "survey".equals(type) && hasText;
+
         // Solve message
         // hasSubject for various types
                 /*
@@ -1185,10 +1190,12 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                    uden name sent you a file.
                  */
         if (hasSubject) {
-          if ("file".equals(type))       message = "sent you a file.";
+          // if ("file".equals(type))       message = "sent you a file.";
+          if ("file".equals(type) && !hasText)  message = "sent you a file.";
           else if ("contact".equals(type))    message = "sent you a contact.";
           else if ("location".equals(type))   message = "sent you a location.";
           else if ("secret".equals(type))     message = "sent you a secret message.";
+          else if ("survey".equals(type) && !hasText) message = "sent you a survey.";
         }
         if ("page".equals(type)) {
           if (message.contains("%sender%")) {
@@ -1210,9 +1217,19 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         }
         else if (("group".equals(roomType) || "announcement".equals(roomType)) && hasSubject) {
           // show sender udenName for roomType group
-          String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) ? " : " : " ";
+          // String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) ? " : " : " ";
+          String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) || isFileWithText || isSurveyWithText ? " : " : " ";
           message = udenName + sep + message;
         }
+
+        /*
+        // 2020-01-21 TEERAWAT Solve excapeText
+        message = message.replaceAll("&amp;", "&");
+        message = message.replaceAll("&lt;", "<");
+        message = message.replaceAll("&gt;", ">");
+        message = message.replaceAll("&quot;", "'");
+        message = message.replaceAll("&#039;", "'");
+        */
 
         Log.i(LOG_TAG, "[pushChatMI] Solve message: " + message);
 
@@ -1285,9 +1302,9 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
     displayNotificationMessage(notId, extras, mBuilder, title, message);
   }
 
-  // 2018-05-30 Extract method displayNotificationMessage out of setNotificationMessage
-  // 2018-11-27 Support title and message
-  // 2019-08-30 Repeat split setNotificationMessage/displayNotificationMessage from GCMIntentService to FCMService
+  // 2018-05-30 ATIP Extract method displayNotificationMessage out of setNotificationMessage
+  // 2018-11-27 ATIP Support title and message
+  // 2019-08-30 ATIP Repeat split setNotificationMessage/displayNotificationMessage from GCMIntentService to FCMService
   private void displayNotificationMessage(int notId, Bundle extras, NotificationCompat.Builder mBuilder, String title, String message) {
     String style = extras.getString(STYLE, STYLE_TEXT);
     if (STYLE_INBOX.equals(style)) {
