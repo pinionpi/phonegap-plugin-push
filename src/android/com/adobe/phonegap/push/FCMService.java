@@ -1008,7 +1008,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         Log.i(LOG_TAG, "[pushChatMI] Solve title: " + title);
 
         // Solve lock text
-        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type))) {
+        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type) || "file".equals(type) || "survey".equals(type))) {
           final String[] lockSplit = lock.split("[:]");
           final String encrypted = text.trim();
           Log.d(LOG_TAG, "[payload] decrypt pushChatMI text which is locked: encrypted=" + encrypted);
@@ -1171,6 +1171,11 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
           }
         }
 
+        boolean isYouHaveAnnounceText = "You have a new announcement.".equals(message);
+        boolean hasText = message != null && message.length() > 0 && !isYouHaveAnnounceText;
+        boolean isFileWithText = "file".equals(type) && hasText;
+        boolean isSurveyWithText = "survey".equals(type) && hasText;
+
         // Solve message
         // hasSubject for various types
                 /*
@@ -1185,10 +1190,12 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                    uden name sent you a file.
                  */
         if (hasSubject) {
-          if ("file".equals(type))       message = "sent you a file.";
+          // if ("file".equals(type))       message = "sent you a file.";
+          if ("file".equals(type) && !hasText)  message = "sent you a file.";
           else if ("contact".equals(type))    message = "sent you a contact.";
           else if ("location".equals(type))   message = "sent you a location.";
           else if ("secret".equals(type))     message = "sent you a secret message.";
+          else if ("survey".equals(type) && !hasText) message = "sent you a survey.";
         }
         if ("page".equals(type)) {
           if (message.contains("%sender%")) {
@@ -1210,10 +1217,10 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         }
         else if (("group".equals(roomType) || "announcement".equals(roomType)) && hasSubject) {
           // show sender udenName for roomType group
-          String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) ? " : " : " ";
+          // String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) ? " : " : " ";
+          String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) || isFileWithText || isSurveyWithText ? " : " : " ";
           message = udenName + sep + message;
         }
-
         Log.i(LOG_TAG, "[pushChatMI] Solve message: " + message);
 
       } else if ("pushMesg".equals(rawOp) && "text".equals(type) && lock != null && lock.length() > 0) {
