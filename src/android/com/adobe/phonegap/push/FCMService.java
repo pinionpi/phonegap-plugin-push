@@ -1221,16 +1221,6 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
           String sep = "link".equals(type) || "text".equals(type) || "topic".equals(type) || isFileWithText || isSurveyWithText ? " : " : " ";
           message = udenName + sep + message;
         }
-
-        /*
-        // 2020-01-21 TEERAWAT Solve excapeText
-        message = message.replaceAll("&amp;", "&");
-        message = message.replaceAll("&lt;", "<");
-        message = message.replaceAll("&gt;", ">");
-        message = message.replaceAll("&quot;", "'");
-        message = message.replaceAll("&#039;", "'");
-        */
-
         Log.i(LOG_TAG, "[pushChatMI] Solve message: " + message);
 
       } else if ("pushMesg".equals(rawOp) && "text".equals(type) && lock != null && lock.length() > 0) {
