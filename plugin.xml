@@ -22,6 +22,7 @@
       <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
       <uses-permission android:name="android.permission.WAKE_LOCK"/>
       <uses-permission android:name="android.permission.VIBRATE"/>
+      <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     </config-file>
     <config-file target="AndroidManifest.xml" parent="/manifest/application">
       <activity android:name="com.adobe.phonegap.push.PushHandlerActivity" android:exported="true" android:permission="${applicationId}.permission.PushHandlerActivity"/>
@@ -45,7 +46,7 @@
     <preference name="ANDROID_SUPPORT_V13_VERSION" default="27.+"/>
     <preference name="FCM_VERSION" default="17.0.+"/>
     <framework src="com.android.support:support-v13:$ANDROID_SUPPORT_V13_VERSION"/>
-    <framework src="me.leolin:ShortcutBadger:1.1.17@aar"/>
+    <framework src="me.leolin:ShortcutBadger:1.1.22@aar"/>
     <framework src="com.google.firebase:firebase-messaging:$FCM_VERSION"/>
     <dependency id="phonegap-plugin-multidex" version="~1.0.0"/>
     <source-file src="src/android/com/adobe/phonegap/push/FCMService.java" target-dir="src/com/adobe/phonegap/push/"/>
