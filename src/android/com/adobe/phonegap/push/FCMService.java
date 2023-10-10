@@ -920,6 +920,13 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                     // Gateway room name order
                     String roomName0 = "";
                     String channelJoinType = item.optString("channelJoinType");
+                    // Default name from channelInfo, room
+                    if (roomName0 == null || "".equals(roomName0)) {
+                      roomName0 = channelInfo.optString("name");
+                    }
+                    if (roomName0 == null || "".equals(roomName0)) {
+                      roomName0 = room.optString("name");
+                    }
                     if (channelJoinType != null && "provider".equals(channelJoinType)) {
                       String providerRoomName = channelInfo.optString("providerRoomName");
                       String custcode = channelInfo.optString("custcode");
