@@ -916,23 +916,35 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
                     channelInfo = null;
                   }
 
-                  if(channelInfo != null){
-                    String roomName0 = channelInfo.optString("name");
-                    if(roomName0 == null || "".equals(roomName0)){
-                      roomName0 = room.optString("name");
-                    }
-
+                  if (channelInfo != null) {
+                    // Gateway room name order
+                    String roomName0 = "";
                     String channelJoinType = item.optString("channelJoinType");
-                    if (roomName0 != null && channelJoinType != null && "provider".equals(channelJoinType)){
+                    if (channelJoinType != null && "provider".equals(channelJoinType)) {
+                      String providerRoomName = channelInfo.optString("providerRoomName");
                       String custcode = channelInfo.optString("custcode");
                       String company = channelInfo.optString("company");
-                      if (custcode != null && !"".equals(custcode)) {
+                      if (providerRoomName != null && !"".equals(providerRoomName)) {
+                        roomName0 = providerRoomName;
+                      } else if (custcode != null && !"".equals(custcode)) {
                         roomName0 = "[" + custcode + "] " + roomName0;
                       } else if (company != null && !"".equals(company)) {
                         roomName0 = company + " " + roomName0;
                       }
                     }
+                    // customerRoomName
+                    if (channelJoinType != null && "customer".equals(channelJoinType)) {
+                      roomName0 = channelInfo.optString("customerRoomName");
+                    }
+                    // Fallback to name from channelInfo, room
+                    if (roomName0 == null || "".equals(roomName0)) {
+                      roomName0 = channelInfo.optString("name");
+                    }
+                    if (roomName0 == null || "".equals(roomName0)) {
+                      roomName0 = room.optString("name");
+                    }
                     senderName = roomName0;
+                    Log.w(LOG_TAG, "[channel] channelJoinType=" + channelJoinType + ", senderName=" + senderName);
                   }
                 }
 
@@ -1008,7 +1020,7 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
         Log.i(LOG_TAG, "[pushChatMI] Solve title: " + title);
 
         // Solve lock text
-        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type) || "file".equals(type) || "survey".equals(type))) {
+        if (lock != null && !lock.isEmpty() && text != null && !text.isEmpty() && ("link".equals(type) || "notification".equals(type) || "text".equals(type) || "topic".equals(type) || "file".equals(type) || "survey".equals(type) || "page".equals(type))) {
           final String[] lockSplit = lock.split("[:]");
           final String encrypted = text.trim();
           Log.d(LOG_TAG, "[payload] decrypt pushChatMI text which is locked: encrypted=" + encrypted);
@@ -1196,10 +1208,13 @@ public class FCMService extends FirebaseMessagingService implements PushConstant
           else if ("location".equals(type))   message = "sent you a location.";
           else if ("secret".equals(type))     message = "sent you a secret message.";
           else if ("survey".equals(type) && !hasText) message = "sent you a survey.";
+          else if ("page".equals(type) && !hasText) message = "sent you a message.";
         }
         if ("page".equals(type)) {
           if (message.contains("%sender%")) {
             message = message.replaceAll("%sender%", udenName);
+          } else {
+            message = udenName + " : " + message;
           }
         }
         else if ("topic".equals(type) && subType != null) {
