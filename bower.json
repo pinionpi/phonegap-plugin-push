@@ -5,13 +5,12 @@
   "authors": [
     "Adobe PhoneGap Team"
   ],
-  "license": "APL",
+  "license": "MIT",
   "keywords": [
     "ecosystem:cordova",
     "ecosystem:phonegap",
     "cordova-ios",
     "cordova-android",
-    "cordova-windows",
     "cordova-browser"
   ],
   "homepage": "https://github.com/phonegap/phonegap-plugin-push",

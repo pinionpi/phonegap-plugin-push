@@ -28,9 +28,11 @@
 
 #import "PushPlugin.h"
 #import "AppDelegate+notification.h"
-@import FirebaseInstanceID;
+
+@import Firebase;
+@import FirebaseCore;
+// @import FirebaseInstanceID;
 @import FirebaseMessaging;
-@import FirebaseAnalytics;
 
 @implementation PushPlugin : CDVPlugin
 
@@ -53,26 +55,28 @@
 
 -(void)initRegistration;
 {
-    NSString * registrationToken = [[FIRInstanceID instanceID] token];
+    [[FIRMessaging messaging] tokenWithCompletion:^(NSString *token, NSError *error) {
+        if (error != nil) {
+            NSLog(@"Error getting FCM registration token: %@", error);
+        } else {
+            NSLog(@"FCM registration token: %@", token);
 
-    if (registrationToken != nil) {
-        NSLog(@"FCM Registration Token: %@", registrationToken);
-        [self setFcmRegistrationToken: registrationToken];
+            [self setFcmRegistrationToken: token];
 
-        id topics = [self fcmTopics];
-        if (topics != nil) {
-            for (NSString *topic in topics) {
-                NSLog(@"subscribe to topic: %@", topic);
-                id pubSub = [FIRMessaging messaging];
-                [pubSub subscribeToTopic:topic];
+            NSString* message = [NSString stringWithFormat:@"Remote InstanceID token: %@", token];
+
+            id topics = [self fcmTopics];
+            if (topics != nil) {
+                for (NSString *topic in topics) {
+                    NSLog(@"subscribe to topic: %@", topic);
+                    id pubSub = [FIRMessaging messaging];
+                    [pubSub subscribeToTopic:topic];
+                }
             }
+
+            [self registerWithToken: token];
         }
-
-        [self registerWithToken:registrationToken];
-    } else {
-        NSLog(@"FCM token is null");
-    }
-
+    }];
 }
 
 //  FCM refresh token
@@ -81,32 +85,17 @@
 #if !TARGET_IPHONE_SIMULATOR
     // A rotation of the registration tokens is happening, so the app needs to request a new token.
     NSLog(@"The FCM registration token needs to be changed.");
-    [[FIRInstanceID instanceID] token];
     [self initRegistration];
 #endif
 }
 
 // contains error info
-- (void)sendDataMessageFailure:(NSNotification *)notification {
-    NSLog(@"sendDataMessageFailure");
-}
-- (void)sendDataMessageSuccess:(NSNotification *)notification {
-    NSLog(@"sendDataMessageSuccess");
-}
-
 - (void)didSendDataMessageWithID:messageID {
     NSLog(@"didSendDataMessageWithID");
 }
 
 - (void)willSendDataMessageWithID:messageID error:error {
     NSLog(@"willSendDataMessageWithID");
-}
-
-- (void)didDeleteMessagesOnServer {
-    NSLog(@"didDeleteMessagesOnServer");
-    // Some messages sent to this device were deleted on the GCM server before reception, likely
-    // because the TTL expired. The client should notify the app server of this, so that the app
-    // server can resend those messages.
 }
 
 - (void)unregister:(CDVInvokedUrlCommand*)command;
@@ -175,20 +164,8 @@
     } else {
         NSLog(@"Push Plugin VoIP missing or false");
         [[NSNotificationCenter defaultCenter]
-         addObserver:self selector:@selector(onTokenRefresh)
-         name:kFIRInstanceIDTokenRefreshNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter]
-         addObserver:self selector:@selector(sendDataMessageFailure:)
-         name:FIRMessagingSendErrorNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter]
-         addObserver:self selector:@selector(sendDataMessageSuccess:)
-         name:FIRMessagingSendSuccessNotification object:nil];
-
-        [[NSNotificationCenter defaultCenter]
-         addObserver:self selector:@selector(didDeleteMessagesOnServer)
-         name:FIRMessagingMessagesDeletedNotification object:nil];
+          addObserver:self selector:@selector(onTokenRefresh)
+          name:FIRMessagingRegistrationTokenRefreshedNotification object:nil];
 
         [self.commandDelegate runInBackground:^ {
             NSLog(@"Push Plugin register called");
@@ -202,6 +179,7 @@
             id badgeArg = [iosOptions objectForKey:@"badge"];
             id soundArg = [iosOptions objectForKey:@"sound"];
             id alertArg = [iosOptions objectForKey:@"alert"];
+            id criticalArg = [iosOptions objectForKey:@"critical"];
             id clearBadgeArg = [iosOptions objectForKey:@"clearBadge"];
 
             if (([badgeArg isKindOfClass:[NSString class]] && [badgeArg isEqualToString:@"true"]) || [badgeArg boolValue])
@@ -217,6 +195,14 @@
             if (([alertArg isKindOfClass:[NSString class]] && [alertArg isEqualToString:@"true"]) || [alertArg boolValue])
             {
                 authorizationOptions |= UNAuthorizationOptionAlert;
+            }
+
+            if (@available(iOS 12.0, *))
+            {
+                if ((([criticalArg isKindOfClass:[NSString class]] && [criticalArg isEqualToString:@"true"]) || [criticalArg boolValue]))
+                {
+                    authorizationOptions |= UNAuthorizationOptionCriticalAlert;
+                }
             }
 
             if (clearBadgeArg == nil || ([clearBadgeArg isKindOfClass:[NSString class]] && [clearBadgeArg isEqualToString:@"false"]) || ![clearBadgeArg boolValue]) {
@@ -503,7 +489,7 @@
             [matchingNotificationIdentifiers addObject:notification.request.identifier];
         }
         [[UNUserNotificationCenter currentNotificationCenter] removeDeliveredNotificationsWithIdentifiers:matchingNotificationIdentifiers];
-        
+
         NSString *message = [NSString stringWithFormat:@"Cleared notification with ID: %@", notId];
         CDVPluginResult *commandResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK messageAsString:message];
         [self.commandDelegate sendPluginResult:commandResult callbackId:command.callbackId];

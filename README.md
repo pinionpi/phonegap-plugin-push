@@ -1,37 +1,16 @@
-# phonegap-plugin-push [![Build Status](https://travis-ci.org/phonegap/phonegap-plugin-push.svg)](https://travis-ci.org/phonegap/phonegap-plugin-push)
+# Cordova Plugin Push
+
+[![Node CI](https://github.com/havesource/cordova-plugin-push/actions/workflows/ci.yml/badge.svg)](https://github.com/havesource/cordova-plugin-push/actions/workflows/ci.yml) [![Codacy Badge](https://api.codacy.com/project/badge/Grade/422c67b5e70c4a0eadae7b9fc794d3c1)](https://app.codacy.com/gh/havesource/cordova-plugin-push?utm_source=github.com&utm_medium=referral&utm_content=havesource/cordova-plugin-push&utm_campaign=Badge_Grade_Settings)
 
 > Register and receive push notifications
 
-# Warning
-
-The links below take you to the version 2.x documentation which includes a
-number of breaking API changes from version 1.x, mostly the move from GCM to
-FCM. If you are using version 1.x please reference the docs in the
-[v1.x branch](https://github.com/phonegap/phonegap-plugin-push/tree/v1.x).
-
 # What is this?
 
-This plugin offers support to receive and handle native push notifications with
-a **single unified API**.
+This plugin offers support to receive and handle native push notifications with a **single unified API**.
 
-This does not mean you will be able to send a single push message and have it
-arrive on devices running different operating systems. By default Android uses
-FCM and iOS uses APNS and their payloads are significantly different. Even if
-you are using FCM for both Android and iOS there are differences in the payload
-required for the plugin to work correctly. For Android **always** put your push
-payload in the `data` section of the push notification. For more information on
-why that is the case read
-[Notification vs Data Payload](https://github.com/phonegap/phonegap-plugin-push/blob/master/docs/PAYLOAD.md#notification-vs-data-payloads).
-For iOS follow the regular
-[FCM documentation](https://firebase.google.com/docs/cloud-messaging/http-server-ref).
+This does not mean you will be able to send a single push message and have it arrive on devices running different operating systems. By default Android uses FCM and iOS uses APNS and their payloads are significantly different. Even if you are using FCM for both Android and iOS there are differences in the payload required for the plugin to work correctly. For Android **always** put your push payload in the `data` section of the push notification. For more information on why that is the case read [Notification vs Data Payload](https://github.com/havesource/cordova-plugin-push/blob/master/docs/PAYLOAD.md#notification-vs-data-payloads). For iOS follow the regular [FCM documentation](https://firebase.google.com/docs/cloud-messaging/http-server-ref).
 
-This plugin does not provide a way to determine which platform you are running
-on. The best way to do that is use the `device.platform` property provided by
-[cordova-plugin-device](https://github.com/apache/cordova-plugin-device).
-
-Starting with version `2.0.0`, this plugin will support `CocoaPods` installation
-of the `Firebase Cloud Messaging` library. More details are available in the
-[Installation](docs/INSTALLATION.md#cocoapods) documentation.
+This plugin does not provide a way to determine which platform you are running on. The best way to do that is use the `device.platform` property provided by [cordova-plugin-device](https://github.com/apache/cordova-plugin-device).
 
 * [Reporting Issues](docs/ISSUES.md)
 * [Installation](docs/INSTALLATION.md)
@@ -89,3 +68,5 @@ of the `Firebase Cloud Messaging` library. More details are available in the
 [<img alt="jdhiro" src="https://avatars0.githubusercontent.com/u/2919453?v=4&s=117" width="117">](https://github.com/jdhiro)[<img alt="edewit" src="https://avatars1.githubusercontent.com/u/51133?v=4&s=117" width="117">](https://github.com/edewit)[<img alt="wildabeast" src="https://avatars1.githubusercontent.com/u/118985?v=4&s=117" width="117">](https://github.com/wildabeast)[<img alt="mkuklis" src="https://avatars2.githubusercontent.com/u/63545?v=4&s=117" width="117">](https://github.com/mkuklis)[<img alt="ashconnell" src="https://avatars2.githubusercontent.com/u/760516?v=4&s=117" width="117">](https://github.com/ashconnell)[<img alt="zwacky" src="https://avatars1.githubusercontent.com/u/1093032?v=4&s=117" width="117">](https://github.com/zwacky)
 
 [<img alt="rakatyal" src="https://avatars2.githubusercontent.com/u/12533467?v=4&s=117" width="117">](https://github.com/rakatyal)[<img alt="jtbdevelopment" src="https://avatars3.githubusercontent.com/u/2074134?v=4&s=117" width="117">](https://github.com/jtbdevelopment)[<img alt="EddyVerbruggen" src="https://avatars1.githubusercontent.com/u/1426370?v=4&s=117" width="117">](https://github.com/EddyVerbruggen)[<img alt="fredgalvao" src="https://avatars2.githubusercontent.com/u/616464?v=4&s=117" width="117">](https://github.com/fredgalvao)[<img alt="bobeast" src="https://avatars0.githubusercontent.com/u/441403?v=4&s=117" width="117">](https://github.com/bobeast)[<img alt="macdonst" src="https://avatars1.githubusercontent.com/u/353180?v=4&s=117" width="117">](https://github.com/macdonst)
+
+[<img alt="larrybahr" src="https://avatars1.githubusercontent.com/u/8782684?v=4&s=117" width="117">](https://github.com/larrybahr)

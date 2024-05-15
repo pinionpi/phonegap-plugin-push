@@ -1,8 +1,15 @@
 - [Overview](#overview)
-  - [Foreground Events](#push-message-arrives-with-app-in-foreground)
-  - [Background Events](#push-message-arrives-with-app-in-background)
-  - [Tap Events](#user-clicks-on-notification-in-notification-center)
+  - [Push message arrives with app in foreground](#push-message-arrives-with-app-in-foreground)
+  - [Push message arrives with app in background](#push-message-arrives-with-app-in-background)
+  - [User clicks on notification in notification center](#user-clicks-on-notification-in-notification-center)
 - [Push Notification Message Format Overview](#push-notification-message-format-overview)
+  - [Android Message Format](#android-message-format)
+    - [Using AWS-SNS with GCM](#using-aws-sns-with-gcm)
+    - [Message Received in JavaScript](#message-received-in-javascript)
+  - [iOS Message Format](#ios-message-format)
+    - [Special Format for Critical Alerts](#special-format-for-critical-alerts)
+    - [Using AWS-SNS with APNS](#using-aws-sns-with-apns)
+    - [Message Received in JavaScript](#message-received-in-javascript-1)
 - [Android Behaviour](#android-behaviour)
   - [Notification vs Data Payloads](#notification-vs-data-payloads)
   - [Localization](#localization)
@@ -12,16 +19,17 @@
   - [Inbox Stacking](#inbox-stacking)
   - [Action Buttons](#action-buttons)
     - [In Line Replies](#in-line-replies)
+      - [Attributes](#attributes)
   - [Led in Notifications](#led-in-notifications)
   - [Vibration Pattern in Notifications](#vibration-pattern-in-notifications)
   - [Priority in Notifications](#priority-in-notifications)
   - [Picture Messages](#picture-messages)
   - [Background Notifications](#background-notifications)
     - [Use of content_available: true](#use-of-content_available-true)
-  - [Caching](#caching)
-  - [Chinese Android Phones](#chinese-android-phones)
-  - [Application force closed](#application-force-closed)
-  - [Visibility](#visibility-of-notifications)
+    - [Chinese Android Phones](#chinese-android-phones)
+    - [Application force closed](#application-force-closed)
+    - [Caching](#caching)
+  - [Visibility of Notifications](#visibility-of-notifications)
   - [Ongoing Notifications](#ongoing-notifications)
   - [Badges](#badges)
   - [Support for Twilio Notify](#support-for-twilio-notify)
@@ -35,12 +43,8 @@
   - [Action Buttons](#action-buttons-1)
     - [Action Buttons using FCM on iOS](#action-buttons-using-fcm-on-ios)
   - [FCM and Additional Data](#fcm-and-additional-data)
+  - [FCM Messages Not Arriving](#fcm-messages-not-arriving)
 - [FCM Payload Details](#fcm-payload-details)
-- [Windows Behaviour](#windows-behaviour)
-  - [Notifications](#notifications)
-  - [Setting Toast Capable Option for Windows](#setting-toast-capable-option-for-windows)
-  - [Disabling the default processing of notifications by Windows](#disabling-the-default-processing-of-notifications-by-windows)
-  - [Background Notifications](#background-notifications-2)
 
 # Overview
 
@@ -167,6 +171,38 @@ The JSON message can contain the following fields, see [Apple developer docs](ht
 }
 ```
 
+### Special Format for Critical Alerts
+
+Since iOS 12, it's possible to send critical alerts to the user's device. A critical alert will popup and play sound even when device is in DND mode or muted. This functionallity is mainly to be used by health apps to inform about critical states.
+
+Instead of the name of the sound, you have to send a dictionary containing further information about critical.
+
+```json
+{
+  "aps": {
+    "alert": {
+      // alternatively just a string: "Your Message",
+      "title": "A short string describing the purpose of the notification",
+      "body": "The text of the alert message",
+      // localization of message is possible
+      "launch-image": "The filename of an image file in the app bundle, with or without the filename extension. The image is used as the launch image when users tap the action button or move the action slider"
+    },
+    "badge": 5, // Number to show at App icon
+    "content-available": "0", // configure background updates, see below
+    "category": "identifier", // Provide this key with a string value that represents the notification’s type
+    "thread-id": "id", // Provide this key with a string value that represents the app-specific identifier for grouping notifications
+    "sound": {
+      "critical" : 1, // When 1, the notification is handled as a critical one. The sound is played aloud even when device is in dnd mode or muted
+      "name" : "default", // play default sound, or custom sound, see [iOS Sound](#sound-1) section
+      "volume" : 1.0 // Optional: Volume. Value can between 0.0 (silent) and 1.0 (full volume)
+    }
+  },
+  "notId": 1,
+  "custom_key1": "value1",
+  "custom_key2": "value2"
+}
+```
+
 ### Using AWS-SNS with APNS
 
 This is the JSON-encoded format you can send via AWS-SNS's web UI:
@@ -262,6 +298,24 @@ My recommended format for your push payload when using this plugin (while it dif
 }
 ```
 
+However, if you want to use the mixed payload, you can make it so the values in your `data` payload is passed to the app when tapping the notification by adding `"click_action": "com.adobe.phonegap.push.background.MESSAGING_EVENT"` to your `notification` payload.
+Your payload would end up looking something like this:
+
+```json
+{
+  "notification": {
+    "title": "Test Notification",
+    "body": "This offer expires at 11:30 or whatever",
+    "notId": 10,
+    "click_action": "com.adobe.phonegap.push.background.MESSAGING_EVENT"
+  },
+  "data": {
+     "surveyID": "ewtawgreg-gragrag-rgarhthgbad"
+  }
+}
+```
+**Important note:** By using the `notification` object in your payload, in all cases, all custom notification features provided by this plugin are unavailable.
+
 When your app is in the foreground any `on('notification')` handlers you have registered will be called. If your app is in the background, then the notification will show up in the system tray. Clicking on the notification in the system tray will start the app, and your `on('notification')` handler will be called with the following data:
 
 ```json
@@ -353,8 +407,7 @@ const push = PushNotification.init({
     alert: 'true',
     badge: 'true',
     sound: 'true'
-  },
-  windows: {}
+  }
 });
 ```
 
@@ -394,8 +447,7 @@ const push = PushNotification.init({
     alert: 'true',
     badge: 'true',
     sound: 'true'
-  },
-  windows: {}
+  }
 });
 ```
 
@@ -2128,57 +2180,14 @@ On iOS, using the FCM app server protocol, if you are trying to send a silent pu
 		"custom_var_2:" "custom value here" /* Retrieved on app as data.additionalData.custom_var_2 */
 	},
   /* Forces FCM silent push notifications to be triggered in the foreground of your iOS device. */
-  "content_available": true  
+  "content_available": true
 }
 ```
 *Doc modification came in response to @andreszs - Issue [#2449](https://github.com/phonegap/phonegap-plugin-push/issues/2449).
 
-** IMPORTANT: When using the content_available field, Android payload issues may occur. [Read here](../docs/PAYLOAD.md#user-content-use-of-content_available-true) Make sure you separate your Android/iOS server payloads to mitigate any problems that may arise. 
+** IMPORTANT: When using the content_available field, Android payload issues may occur. [Read here](../docs/PAYLOAD.md#user-content-use-of-content_available-true) Make sure you separate your Android/iOS server payloads to mitigate any problems that may arise.
 
 More information on how to send push notifications using the FCM HTTP protocol and payload details can be found here:
 
 - [Send messages using the legacy app server protocols](https://firebase.google.com/docs/cloud-messaging/send-message#send_messages_using_the_legacy_app_server_protocols 'Send messages using the legacy app server protocols')
 - [Firebase Cloud Messaging HTTP Protocol](https://firebase.google.com/docs/cloud-messaging/http-server-ref 'Firebase Cloud Messaging HTTP Protocol')
-
-# Windows Behaviour
-
-## Notifications
-
-The plugin supports all types of windows platform notifications namely [Tile, Toast, Badge and Raw](https://msdn.microsoft.com/en-us/library/windows/apps/Hh779725.aspx). The API supports the basic cases of the notification templates with title corresponding to the first text element and message corresponding to the second if title is present else the first one. The image corresponds to the first image element of the notification xml.
-
-The count is present only for the badge notification in which it represent the value of the notification which could be a number from 0-99 or a status glyph.
-
-For advanced templates and usage, the notification object is included in [`data.additionalData.pushNotificationReceivedEventArgs`](https://msdn.microsoft.com/en-us/library/windows/apps/windows.networking.pushnotifications.pushnotificationreceivedeventargs).
-
-## Setting Toast Capable Option for Windows
-
-This plugin automatically sets the toast capable flag to be true for Cordova 5.1.1+. For lower versions, you must declare that it is Toast Capable in your app's manifest file.
-
-## Disabling the default processing of notifications by Windows
-
-The default handling can be disabled by setting the 'cancel' property in the notification object.
-
-```javascript
-data.additionalData.pushNotificationReceivedEventArgs.cancel = true;
-```
-
-## Background Notifications
-
-On Windows, to trigger the on('notification') event handler when your app is in the background and it is launched through the push notification, you will have to include `activation` data in the payload of the notification. This is done by using the `launch` attribute, which can be any string that can be understood by the app. However it should not cause the XML payload to become invalid.
-
-If you do not include a launch attribute string, your app will be launched normally, as though the user had launched it from the Start screen, and the notification event handler won't be called.
-
-Here is an example of a sample toast notification payload containing the launch attribute:
-
-```xml
-<toast launch="{&quot;myContext&quot;:&quot;12345&quot;}">
-    <visual>
-        <binding template="ToastImageAndText01">
-            <image id="1" src="ms-appx:///images/redWide.png" alt="red graphic"/>
-            <text id="1">Hello World!</text>
-        </binding>
-    </visual>
-</toast>
-```
-
-This launch attribute string is passed on to the app as data.launchArgs through the on('notification') handler. It's important to note that due to the Windows platform design, the other visual payload is not available to the handler on cold start. Notification attributes like message, title, etc., are available through the on('notification') handler when the app is running, and won't be available for background notifications.
