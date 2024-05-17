@@ -1,6 +1,7 @@
 package com.adobe.phonegap.push
 
 import android.annotation.SuppressLint
+import android.app.KeyguardManager.KeyguardLock
 import android.app.Notification
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -12,6 +13,7 @@ import android.graphics.*
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.PowerManager
 import android.provider.Settings
 import android.text.Spanned
 import android.util.Log
@@ -34,6 +36,7 @@ import java.net.URL
 import java.security.SecureRandom
 import java.util.*
 
+
 /**
  * Firebase Cloud Messaging Service Class
  */
@@ -42,8 +45,15 @@ import java.util.*
 class FCMService : FirebaseMessagingService() {
   companion object {
     private const val TAG = "${PushPlugin.PREFIX_TAG} (FCMService)"
+    private const val LOG_TAG = "Push_FCMService"
 
-    private val messageMap = HashMap<Int, ArrayList<String?>>()
+    @JvmField var messageMap = HashMap<Int, ArrayList<String?>>()
+
+    // 2020-07-15 Try WakeLock for voice call (See GcmService.onMessageReceived)
+    // 2021-09-08 keyguardLock disableKeyguard/reenableKeyguard => not work
+    // 2021-09-08 Android moveToBackground (also clearScreenAndKeyguardFlags) / See BackgroundModeExt.java
+    private var wakeLock: PowerManager.WakeLock? = null
+    private var keyguardLock: KeyguardLock? = null // See also FLAG_DISMISS_KEYGUARD
 
     private val FLAG_MUTABLE = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       PendingIntent.FLAG_MUTABLE
@@ -130,6 +140,66 @@ class FCMService : FirebaseMessagingService() {
     }
 
     if (isAvailableSender(from)) {
+      val applicationContext = applicationContext;
+
+      // 2020-07-15 WakeLock for call
+      val rawOp = extras.getString("rawOp")
+      if ("call" == rawOp) {
+        try {
+          val pm = applicationContext.getSystemService(POWER_SERVICE) as PowerManager
+          // Tested on Android O (8.0.0 API 26)
+          wakeLock = pm.newWakeLock(
+            (PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.FULL_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP),
+            "eunite:wakelocktag"
+          )
+
+          // Not Working Options
+          //wakeLock = pm.newWakeLock(PowerManager.ACQUIRE_CAUSES_WAKEUP, "eunite:wakelocktag");
+          //wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ON_AFTER_RELEASE, "eunite:wakelocktag");
+          //wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK | PowerManager.ACQUIRE_CAUSES_WAKEUP, "eunite:wakelocktag");
+
+          // 2021-09-08 acquire wakeLock with timeout 2s
+          wakeLock?.acquire(2 * 1000L)
+          Log.w(LOG_TAG, "acquire wakeLock=$wakeLock".toString() + ", isHeld=" + wakeLock?.isHeld())
+        } catch (ex: java.lang.Exception) {
+          Log.w(LOG_TAG, "Wake Lock Acquire Failed.", ex)
+        }
+        /* Not disableKeyguard here => See BackgroundModeExt.java
+        if (wakeLock != null) {
+          // KeyguardManager => Now use SHOW_WHEN_LOCKED
+          KeyguardManager keyguardManager = (KeyguardManager) applicationContext.getSystemService(Context.KEYGUARD_SERVICE);
+          keyguardLock =  keyguardManager.newKeyguardLock("eunite:wakelocktag");
+          Log.w(LOG_TAG, "disableKeyguard: keyguardLock=" + keyguardLock);
+          if (keyguardLock != null) {
+            keyguardLock.disableKeyguard();
+            Log.w(LOG_TAG, "acquire wakeLock + disableKeyguard => successfully");
+          }
+        }
+        */
+      } else {
+        var keyguardLock = keyguardLock;
+        if (keyguardLock != null) {
+          Log.w(
+            LOG_TAG,
+            "reenableKeyguard: keyguardLock=$keyguardLock"
+          )
+          keyguardLock.reenableKeyguard()
+          keyguardLock = null
+        }
+        // Cannot release => WakeLock under-locked
+        if (wakeLock != null) {
+          Log.w(LOG_TAG, "release wakeLock=$wakeLock".toString() + ", isHeld=" + wakeLock?.isHeld())
+          if (wakeLock?.isHeld() == true) {
+            wakeLock?.release()
+          }
+          wakeLock = null
+        }
+        Log.w(
+          LOG_TAG,
+          "Check keyguardLock=$keyguardLock, wakeLock=$wakeLock"
+        )
+      }
+
       val messageKey = pushSharedPref.getString(PushConstants.MESSAGE_KEY, PushConstants.MESSAGE)
       val titleKey = pushSharedPref.getString(PushConstants.TITLE_KEY, PushConstants.TITLE)
 
@@ -504,8 +574,10 @@ class FCMService : FirebaseMessagingService() {
       .setDeleteIntent(deleteIntent)
       .setAutoCancel(true)
 
-    val localIcon = pushSharedPref.getString(PushConstants.ICON, null)
-    val localIconColor = pushSharedPref.getString(PushConstants.ICON_COLOR, null)
+    var localIconColor = "#0D47A1"; // atwork blue
+    var localIcon = "ic_stat_name"; // Create via Android Studio: res -> New -> Image Asset
+    //var localIcon = pushSharedPref.getString(PushConstants.ICON, null)
+    //var localIconColor = pushSharedPref.getString(PushConstants.ICON_COLOR, null)
     val soundOption = pushSharedPref.getBoolean(PushConstants.SOUND, true)
     val vibrateOption = pushSharedPref.getBoolean(PushConstants.VIBRATE, true)
 
@@ -573,7 +645,8 @@ class FCMService : FirebaseMessagingService() {
     /*
      * Notification message
      */
-    setNotificationMessage(notId, extras, mBuilder)
+    //setNotificationMessage(notId, extras, mBuilder)
+    MessageEncryption.setNotificationMessage(this, notId, extras, mBuilder);
 
     /*
      * Notification count
@@ -1156,7 +1229,7 @@ class FCMService : FirebaseMessagingService() {
     }
   }
 
-  private fun getBitmapFromURL(strURL: String?): Bitmap? {
+  public fun getBitmapFromURL(strURL: String?): Bitmap? {
     return try {
       val url = URL(strURL)
       val connection = (url.openConnection() as HttpURLConnection).apply {
@@ -1186,7 +1259,7 @@ class FCMService : FirebaseMessagingService() {
     return returnVal
   }
 
-  private fun fromHtml(source: String?): Spanned? {
+  public fun fromHtml(source: String?): Spanned? {
     return if (source != null) HtmlCompat.fromHtml(source, HtmlCompat.FROM_HTML_MODE_LEGACY) else null
   }
 
